@@ -4,103 +4,103 @@ using UnityEngine;
 
 public class EnemyAI : MonoBehaviour, IAI
 {
-    public Pathfinder pathfinder;
-    public Transform player;
-    public float moveSpeed = 2f;
-    public float distanceThreshold = 0.1f;
+    public Pathfinder pathfinder; 
+    public Transform player; 
+    
+    public float moveSpeed = 2f; 
 
-    bool isMoving = false;
-    Animator anim;
+    public bool isMoving = false; 
+
+    private Animator anim; 
+    private float yPos; 
 
     void Start()
     {
-        anim = GetComponent<Animator>(); // grab anim from self lol
+        anim = GetComponent<Animator>(); 
+        yPos = transform.position.y; 
     }
 
     public void TakeTurn()
     {
-        if (isMoving)
-        {
-            return; // already walkin so chill
-        }
+        // if enemy is Already moving, no need to move again
+        if (isMoving || pathfinder == null || player == null)
+              return;
+      
+      
+        Vector3 myPos = new Vector3(Mathf.Round(transform.position.x), 0, Mathf.Round(transform.position.z));
 
-        if (pathfinder == null)
-        {
-            Debug.Log("uhh no pathfinder here");
+        Vector3 playerPos = new Vector3(Mathf.Round(player.position.x), 0, Mathf.Round(player.position.z));
+
+        // if enemy is too close, no move
+
+        if (Vector3.Distance(myPos, playerPos) <= 1.1f)
             return;
-        }
 
-        if (player == null)
-        {
-            Debug.Log("where did the player go lol");
-            return;
-        }
+   
+             List<Vector3> path = pathfinder.FindPath(myPos, playerPos);
 
-        Vector3 enemyPos = transform.position;
-        Vector3 playerPos = player.position;
-
-        List<Vector3> path = pathfinder.FindPath(enemyPos, playerPos);
-
+     
         if (path == null || path.Count < 2)
-        {
-            return; // nowhere to go
-        }
+                   return;
 
-        Vector3 targetPos = path[path.Count - 2]; // go near player
-        targetPos.y = transform.position.y;
-
-        float dist = Vector3.Distance(transform.position, targetPos);
-        if (dist < distanceThreshold)
-        {
-            return;
-        }
-
-        StartCoroutine(MoveToTile(targetPos));
+      
+        StartCoroutine(MoveAlongPath(path));
     }
 
-    IEnumerator MoveToTile(Vector3 targetPos)
+
+
+    IEnumerator MoveAlongPath(List<Vector3> path)
     {
         isMoving = true;
 
+        // anim check
         if (anim != null)
+            anim.SetBool("isRunning", true);
+
+        // move to each tile one by one
+        for (int i = 0; i < path.Count - 1; i++)
         {
-            anim.SetBool("isRunning", true); // start run
+            Vector3 point = path[i];
+
+
+            Vector3 target = new Vector3(point.x, yPos, point.z); // freex y
+            Vector3 start = transform.position;
+
+
+
+            Vector3 dir = target - transform.position;
+
+            // face the next tile
+            if (dir != Vector3.zero)
+                transform.rotation = Quaternion.LookRotation(dir);
+
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.deltaTime * moveSpeed;
+
+
+
+                transform.position = Vector3.Lerp(start, target, t); //leop to  move smoothly
+                yield return null;
+            }
+
+            transform.position = target; 
         }
 
-        Vector3 start = transform.position;
-
-        Vector3 faceDir = targetPos - transform.position;
-        if (faceDir != Vector3.zero)
-        {
-            transform.rotation = Quaternion.LookRotation(faceDir); // look that way
-        }
-
-        float t = 0f;
-
-        while (t < 1f)
-        {
-            t += Time.deltaTime * moveSpeed;
-            transform.position = Vector3.Lerp(start, targetPos, t);
-            yield return null;
-        }
-
-        transform.position = targetPos;
-
-        // turn off run anim
+        
         if (anim != null)
-        {
             anim.SetBool("isRunning", false);
-        }
 
-        // always face player even after walking
+        // face the player after reaching
         if (player != null)
         {
-            Vector3 lookAtPlayer = player.position - transform.position;
-            lookAtPlayer.y = 0f; // keep it flat
-            if (lookAtPlayer != Vector3.zero)
-            {
-                transform.rotation = Quaternion.LookRotation(lookAtPlayer);
-            }
+            Vector3 lookAt = player.position - transform.position;
+            lookAt.y = 0f;
+            if (lookAt != Vector3.zero)
+
+            
+                transform.rotation = Quaternion.LookRotation(lookAt);
         }
 
         isMoving = false;

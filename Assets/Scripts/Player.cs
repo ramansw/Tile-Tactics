@@ -5,11 +5,14 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     public float moveSpeed = 2f;
+
     public bool isMoving = false;
 
 
     private float yPos;
+
     public EnemyAI enemyAI;
+
     private Animator anim;
 
     void Start()
@@ -30,8 +33,10 @@ public class Player : MonoBehaviour
 
     IEnumerator MoveOnPath(List<Vector3> path)
     {
+        //animation check
         isMoving = true;
         if (anim != null)
+        
             anim.SetBool("isRunning", true);
 
         foreach (Vector3 point in path)
@@ -42,7 +47,7 @@ public class Player : MonoBehaviour
 
 
 
-            // Rotate once before moving
+            // Rotate once before moving so it can face towards it is moving
             Vector3 dir = targetPos - transform.position;
             if (dir != Vector3.zero)
             {
